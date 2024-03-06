@@ -1,0 +1,125 @@
+
+directive @goField(forceResolver: Boolean, name: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  profile: Profile
+  posts: [Post!]!
+  followers: [User!]!
+  following: [User!]!
+  Address: Address!
+  token: String
+  refreshToken: String
+}
+
+
+
+input CreateUserInput{
+  name: String!
+  email: String!
+  password:String!
+  Address: CreateAddress
+}
+
+type Profile {
+  id: ID!
+  userId:ID!
+  bio: String!
+  avatarUrl: String
+  interests: [String!]!
+}
+
+input CreateProfileInput { 
+  userId:ID!
+  bio: String!
+  avatarUrl: String
+  interests: [String!]!
+}
+
+
+type Post {
+  id: ID!
+  userId:ID!
+  title: String!
+  content: String!
+  author: User!
+  comments: [Comment!]!
+}
+
+input CreatePost {
+  userId: ID!
+  title: String!
+  content: String!
+ 
+}
+
+type Address {
+  street: String!
+  city: String!
+  state: String!
+  zip: String!
+}
+
+input CreateAddress {
+  street: String!
+  city: String!
+  state: String!
+  zip: String!
+}
+
+type Comment {
+  id: ID!
+  userId:ID!
+  postId:ID!
+  content: String!
+  author: User!
+  parentComment: Comment
+  replies: [Comment!]!
+}
+
+ input CreateCommentInput {
+  postId: ID!
+  userId:ID!
+  content: String!
+  parentCommentId: ID 
+}
+
+
+
+type Follow {
+  id: ID!
+  follower: User!
+  following: User!
+}
+
+input FollowUserInput {
+  userId: ID!
+  targetUserId: ID!  
+}
+
+
+type Query {
+  user(id: ID!): User!
+  allUsers: [User!]!
+  posts (userId: ID!): [Post!]!
+  isFollowing(userId: ID!, targetUserId: ID!): Boolean!
+  followers(id:ID!):[User!]!
+  comment(commetId: ID!):Comment!
+  allComments(id:ID!): [Comment!]!
+  post(postId: ID!):Post!
+}
+
+
+type Mutation {
+  createUser(input:CreateUserInput!): User!
+  createPost(input:CreatePost!): Post!
+  createComment(input:CreateCommentInput!): Comment!
+  followUser(input:FollowUserInput!): Follow!
+  unfollowUser(input:FollowUserInput): Boolean!
+  login(email: String!, password: String!): User!
+  signup(input: CreateUserInput!): User!
+ 
+}
+#go run github.com/99designs/gqlgen generate
