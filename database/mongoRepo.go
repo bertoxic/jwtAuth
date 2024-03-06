@@ -290,21 +290,21 @@ func (db *DB) AllUsern(userID string) ([]*model.User, error) {
 	return []*model.User{}, nil
 }
 
-func (db *DB) Signup(authOps *model.CreateUserInput) (*model.User,error){
+func (db *DB) Signup(createUser *model.CreateUserInput) (*model.User,error){
 	userCollection := db.client.Database("jwtAuth").Collection("user")
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-		log.Println(authOps)	
+		log.Println(createUser)	
 	addressBson := bson.M{
-		"city":   authOps.Address.City,
-		"state":  authOps.Address.State,
-		"street": authOps.Address.Street,
-		"zip":    authOps.Address.Zip,
+		"city":   createUser.Address.City,
+		"state":  createUser.Address.State,
+		"street": createUser.Address.Street,
+		"zip":    createUser.Address.Zip,
 	}
 
 	insertedResult, err := userCollection.InsertOne(ctx, bson.M{
-		"name":    authOps.Name,
-		"email":   authOps.Email,
+		"name":    createUser.Name,
+		"email":   createUser.Email,
 		"address": addressBson,
 	})
 	if err != nil {
@@ -317,7 +317,12 @@ func (db *DB) Signup(authOps *model.CreateUserInput) (*model.User,error){
 	userCollection.FindOne(ctx, filter).Decode(&user)
 	user.ID = insertedID
 	token, refreshToken , err := helpers.GenerateToken(user.Email, user.Name)
-	log.Println("geberated tohen", token)
+	if err != nil {
+		log.Println("unable to generate token in singnup",err)
+		return nil, err
+	}
+
+	log.Println("generated tokennnnnn", token)
 	db.UpdateTokenToDB(token,refreshToken,insertedID)
 	userCollection.FindOne(ctx, filter).Decode(&user)
 
@@ -331,6 +336,7 @@ func (db *DB) UpdateTokenToDB(signedToken, signedRefreshToken, userId string) {
     defer cancel()
 
     objectId, err := primitive.ObjectIDFromHex(userId)
+	log.Println("primitive id converted in uppdatetoken is", objectId)
     if err != nil {
         log.Println(err,objectId)
         return
@@ -360,27 +366,38 @@ func (db *DB) UpdateTokenToDB(signedToken, signedRefreshToken, userId string) {
 
     log.Printf("Updated %v documents", result.ModifiedCount)
 }
+type UserX struct {
+	ID            primitive.ObjectID `bson:"_id"`
+	Name     *string            `json:"name"`
+	Password      *string            `json:"password"`
+	Email      *string            `json:"email"`
+	}    
 
 func (db *DB) Login(email, password string) (*model.User, error) {
     userCollection := db.client.Database("jwtAuth").Collection("user")
     ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
     defer cancel()
 
-    foundUser := model.User{}
+    var foundUser model.User
     err := userCollection.FindOne(ctx, bson.M{"email": email}).Decode(&foundUser)
+	filter := bson.M{"email": email}
+	var foundUserID UserX
+	err = userCollection.FindOne(ctx, filter).Decode(&foundUserID)
     if err != nil {
         log.Println(err)
         return nil, err
     }
 
     fmt.Println("xxxxxxxxxxxxxxxxxxxxx", foundUser)
+    fmt.Println("xxxxxxxxxxxxxxxxxxxxx", foundUserID)
+	foundUser.ID = foundUserID.ID.Hex()
 
     token, refreshToken, err := helpers.GenerateToken(email, foundUser.Name)
     if err != nil {
         log.Println(err)
         return nil, err
     }
-
+	
     db.UpdateTokenToDB(token, refreshToken, foundUser.ID)
     return &foundUser, nil
 }

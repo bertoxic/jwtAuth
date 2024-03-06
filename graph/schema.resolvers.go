@@ -39,7 +39,7 @@ func (r *mutationResolver) UnfollowUser(ctx context.Context, input *model.Follow
 
 // Login is the resolver for the login field.
 func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*model.User, error) {
-	return db.Login(email,password)
+	return db.Login(email, password)
 }
 
 // Signup is the resolver for the signup field.
